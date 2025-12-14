@@ -963,10 +963,3 @@ Maintenant que vous avez installé JMAK :
 
 ---
 
-<div align="center">
-
-### ⭐ Si ce package vous a été utile, mettez une ⭐ sur GitHub !
-
-[📍 https://github.com/prunelleeba/JMAK-](https://github.com/prunelleeba/JMAK-)
-
-</div>

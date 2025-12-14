@@ -1,0 +1,28 @@
+Package: JMAK
+Title: Johnson-Mehl-Avrami-Kolmogorov (JMAK / Avrami) kinetics tools
+Version: 1.1
+Authors@R: person("EBA NGOLONG", "Jeanne Chantal", email = "jeanne.eba@facsciences-uy1.cm", role = c("aut", "cre"))
+Description: Tools to compute, fit and visualize JMAK/Avrami kinetics models (isothermal nucleation+growth).
+Depends: R (>= 4.0.0)
+Imports:
+    stats,
+    ggplot2
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    patchwork,
+    cowplot,
+    gridExtra,
+    minpack.lm
+Export:
+    - jmnak_Y
+    - jmnak_fit_lm
+    - jmnak_fit_nls
+    - jmnak_plot
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Config/testthat/edition: 3
+LazyData: true

@@ -1,0 +1,195 @@
+#' Validate and clean input data for JMAK
+#'
+#' @param t numeric vector times (>0)
+#' @param Y numeric vector fractions (0..1) or percents (0..100)
+#' @return data.frame with columns t and Y (clamped)
+jmnak_import_validate <- function(t, Y, clamp_low = 1e-6, clamp_high = 1-1e-6) {
+  if (missing(t) || missing(Y)) stop("t and Y required")
+  if (!is.numeric(t) || !is.numeric(Y)) stop("t and Y must be numeric")
+  if (length(t) != length(Y)) stop("t and Y must have the same length")
+  if (any(is.na(t)) || any(is.na(Y))) stop("t and/or Y contains NA")
+  if (any(t <= 0)) stop("t must be > 0")
+  # convert percent to fraction if necessary
+  if (max(Y, na.rm = TRUE) > 1) Y <- Y / 100
+  Y <- pmin(pmax(Y, clamp_low), clamp_high)
+  data.frame(t = as.numeric(t), Y = as.numeric(Y))
+}
+
+#' Fit JMAK model (automatic: lm start + robust nls)
+#'
+#' This is the user-facing fit: it computes a quick linearized estimate (lm),
+#' then tries a non-linear fit (nls), falling back to minpack.lm::nlsLM if needed.
+#'
+#' Returns a tidy list: method used, K, n, lm (if computed), nls (if computed),
+#' diagnostics (R2, cooks), recommendation.
+#'
+#' @param t numeric vector of times (>0)
+#' @param Y numeric vector of fractions (0..1) or percents (0..100)
+#' @param r2_threshold numeric threshold for deciding if linearization is good (default 0.90)
+#' @param use_nlsLM logical, try minpack.lm::nlsLM when nls fails (default TRUE)
+#' @param nls_control list passed to nls.control (default maxiter=200)
+#' @return list with elements: K, n, method ("lm" or "nls"), lm, nls, r2, cooks, influential_indices, recommendation
+#' @examples
+#' t <- c(1,2,3,4,5,6,8,10); K <- 0.02; n <- 3
+#' Y <- 1 - exp(-K * t^n)
+#' res <- jmnak_fit(t, Y)
+#' res$K; res$n
+#' @export
+jmnak_fit <- function(t, Y,
+                      r2_threshold = 0.90,
+                      use_nlsLM = TRUE,
+                      nls_control = list(maxiter = 200)) {
+  df <- jmnak_import_validate(t, Y)
+  ok <- which(df$Y > 0 & df$Y < 1)
+  if (length(ok) < 3) stop("Need at least 3 valid points with 0<Y<1 and t>0")
+  x <- log(df$t[ok]); y <- log(-log(1 - df$Y[ok]))
+  lm_fit <- stats::lm(y ~ x)
+  s <- summary(lm_fit)
+  r2 <- s$r.squared
+  slope <- as.numeric(coef(lm_fit)[2])
+  intercept <- as.numeric(coef(lm_fit)[1])
+  K_lm <- exp(intercept); n_lm <- slope
+  cooks <- stats::cooks.distance(lm_fit)
+  influ_threshold <- 4/length(ok)
+  influential_idx <- which(cooks > influ_threshold)
+
+  # Decide recommendation
+  is_linear <- (r2 >= r2_threshold) && (length(influential_idx) == 0)
+  recommendation <- if (is_linear) "lm_then_nls" else "nls_direct"
+
+  # Try NLS with start from lm
+  start <- list(K = K_lm, n = n_lm)
+  nls_res <- tryCatch({
+    stats::nls(df$Y[ok] ~ 1 - exp(-K * df$t[ok]^n),
+               start = start,
+               control = do.call(stats::nls.control, nls_control),
+               algorithm = "port",
+               lower = c(1e-12, 0.01))
+  }, error = function(e) e)
+
+  # fallback to nlsLM if available and nls failed
+  if (inherits(nls_res, "error") && use_nlsLM && requireNamespace("minpack.lm", quietly = TRUE)) {
+    nls_res2 <- tryCatch({
+      minpack.lm::nlsLM(df$Y[ok] ~ 1 - exp(-K * df$t[ok]^n),
+                        start = start,
+                        lower = c(1e-12, 0.01))
+    }, error = function(e) e)
+    if (!inherits(nls_res2, "error")) nls_res <- nls_res2
+  }
+
+  if (inherits(nls_res, "error")) {
+    # nls failed: return lm-based estimates and recommendation
+    return(list(
+      method = "lm_only",
+      K = K_lm, n = n_lm,
+      lm = lm_fit,
+      nls = NULL,
+      r2 = r2,
+      cooks = cooks,
+      influential = influential_idx,
+      recommendation = recommendation,
+      note = paste("nls failed:", nls_res$message)
+    ))
+  } else {
+    coefs <- stats::coef(nls_res)
+    K_nls <- as.numeric(coefs["K"]); n_nls <- as.numeric(coefs["n"])
+    return(list(
+      method = "nls",
+      K = K_nls, n = n_nls,
+      lm = lm_fit,
+      nls = nls_res,
+      r2 = r2,
+      cooks = cooks,
+      influential = influential_idx,
+      recommendation = recommendation
+    ))
+  }
+}
+
+#' Predict Y(t) from K and n, and compute t* for target Ys
+#'
+#' @param t numeric vector (times) at which to compute predictions (optional if only tstar requested)
+#' @param K numeric fitted K
+#' @param n numeric fitted n
+#' @param Ystar numeric vector of target fractions in (0,1) for which to return t*
+#' @return list with elements: t (grid), Y_pred (if t provided), tstar (named vector for Ystar)
+#' @examples
+#' pr <- jmnak_predict(t = seq(0.1,10,0.1), K = 0.02, n = 3, Ystar = c(0.5,0.9))
+#' @export
+jmnak_predict <- function(t = NULL, K, n, Ystar = c(0.5, 0.9)) {
+  if (missing(K) || missing(n)) stop("K and n required")
+  if (!is.numeric(K) || !is.numeric(n)) stop("K and n must be numeric")
+  if (!is.null(t)) {
+    if (any(t <= 0)) stop("t must be > 0")
+    Y_pred <- 1 - exp(-K * (t ^ n))
+  } else {
+    Y_pred <- NULL
+  }
+  # compute t* for each Ystar
+  valid_Ystar <- Ystar[Ystar > 0 & Ystar < 1]
+  tstar <- setNames(sapply(valid_Ystar, function(Yt) {
+    ((-log(1 - Yt))/K)^(1 / n)
+  }), paste0("t_for_Y=", valid_Ystar))
+  list(t = t, Y_pred = Y_pred, tstar = tstar)
+}
+
+#' Enhanced plot: data + fitted curve + linearization + annotated t*
+#'
+#' Produces two ggplots: (1) Y vs t with fitted curve and vertical lines at t*; (2) Avrami linearization with lm line.
+#' @export
+jmnak_plot <- function(t, Y, fit_result = NULL, Ystar = c(0.5, 0.8, 0.9),
+                       return_plots = TRUE, save = NULL) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 is required for plotting")
+  df <- jmnak_import_validate(t, Y)
+  if (is.null(fit_result)) fit_result <- jmnak_fit(df$t, df$Y)
+  K <- fit_result$K; n <- fit_result$n
+  tgrid <- seq(min(df$t), max(df$t), length.out = 300)
+  Ypred <- 1 - exp(-K * tgrid^n)
+
+  p1 <- ggplot2::ggplot(df, ggplot2::aes(x = t, y = Y)) +
+    ggplot2::geom_point(size = 2) +
+    ggplot2::geom_line(data = data.frame(t = tgrid, Y = Ypred), ggplot2::aes(x = t, y = Y), color = "#1b9e77", size = 1) +
+    ggplot2::labs(x = "t", y = "Y(t)", title = "Données et ajustement JMAK") +
+    ggplot2::theme_minimal()
+
+  for (Yt in Ystar) {
+    if (Yt > 0 && Yt < 1) {
+      tstar <- ((-log(1 - Yt))/K)^(1 / n)
+      p1 <- p1 + ggplot2::geom_vline(xintercept = tstar, linetype = "dashed", color = "grey50") +
+        ggplot2::annotate("text", x = tstar, y = 0.05, label = paste0("t*=", round(tstar,2), " (Y=", Yt,")"), angle = 90, vjust = -0.5, size = 3)
+    }
+  }
+  # linearization plot as before but using ggplot2::...
+  ok <- which(df$Y > 0 & df$Y < 1)
+  df2 <- data.frame(x = log(df$t[ok]), y = log(-log(1 - df$Y[ok])))
+  lmfit <- stats::lm(y ~ x, data = df2)
+  p2 <- ggplot2::ggplot(df2, ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_point(size = 2) +
+    ggplot2::geom_abline(intercept = stats::coef(lmfit)[1], slope = stats::coef(lmfit)[2], color = "#d95f02", size = 1) +
+    ggplot2::labs(x = "ln(t)", y = "ln(-ln(1-Y))", title = "Avrami linearization") +
+    ggplot2::theme_minimal()
+
+  if (!is.null(save)) {
+    if (!dir.exists(save)) dir.create(save, recursive = TRUE)
+    ggplot2::ggsave(filename = file.path(save, "JMAK_Y_vs_t.png"), plot = p1, width = 7, height = 5)
+    ggplot2::ggsave(filename = file.path(save, "JMAK_linearization.png"), plot = p2, width = 7, height = 5)
+  }
+  if (return_plots) return(invisible(list(curve = p1, linear = p2))) else return(invisible(NULL))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

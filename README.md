@@ -6,20 +6,6 @@
 
 A modern and accessible R package to **model and analyze transformation kinetics** (crystallization, chemical reactions, polymerization, etc.) using the **JMAK/Avrami model**.
 
----
-
-## 📋 Table of Contents
-
-1. [📌 About](#about)
-2. [🚀 Installation](#installation)
-3. [⚡ Quick Start](#quick-start)
-4. [📖 Complete Guide](#complete-guide)
-5. [🔧 Main Functions](#main-functions)
-6. [📊 Practical Examples](#practical-examples)
-7. [❓ FAQ](#faq)
-8. [📞 Support](#support)
-
----
 
 ## 📌 About
 

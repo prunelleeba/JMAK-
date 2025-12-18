@@ -59,7 +59,7 @@ Where:
 
 Choose the method that best fits your situation:
 
-### **Method 1: Local Installation (⭐ Recommended for beginners)**
+### ** Local Installation (⭐ Recommended for beginners)**
 
 This is the simplest method if you have the source code on your machine.
 
@@ -77,75 +77,21 @@ cd ~/Documents
 git clone https://github.com/prunelleeba/JMAK-.git
 ```
 
+**directly in Rstudio** 
+we should have to install **remote** package
+```console
+remotes::install_github("prunelleeba/JMAK-")
+```
 > ⚠️ **Important**: You must have `git` installed on your machine. If you don't have it:
 > - **Windows**: Download from https://git-scm.com/download/win
 > - **Ubuntu**: `sudo apt-get install git`
 > - **macOS**: `brew install git`
 
-#### Step 2: Open RStudio and install from the local folder
-
-1. Open **RStudio**
-2. Go to menu **Tools** → **Install Packages...**
-3. In **Install from**, select: **Package Archive File (.tar.gz, .zip)**
-4. Click **Browse** and navigate to the `JMAK` folder you just downloaded
-5. Select the file `JMAK_1.1.tar.gz`
-6. Click **Install**
-
-Wait a few seconds, and you're done! ✅
-
-**Alternative (without RStudio GUI)**:
-
-In the R console:
-```r
-install.packages("C:/Users/YourName/Documents/JMAK/JMAK_1.1.tar.gz", 
-                 repos = NULL, 
-                 type = "source")
-```
-
-### **Method 2: Installation from source directory (Developers)**
-
-**In the R console, from the project folder:**
+## **Method 1: Open the project folder directly in Rstudio and in console make**
 
 ```r
-# First installation (only once)
-install.packages(c("devtools", "ggplot2"))
-
-# Load the package in development mode
 devtools::load_all()
 
-# OR install directly
-devtools::install()
-```
-
-### **Method 3: Command line installation (Terminal/PowerShell)**
-
-**Windows (PowerShell):**
-```powershell
-cd C:\Users\YourName\Documents\JMAK
-R CMD INSTALL JMAK_1.1.tar.gz
-```
-
-**Linux/macOS:**
-```bash
-cd ~/Documents/JMAK
-R CMD INSTALL JMAK_1.1.tar.gz
-```
-
----
-
-## ⚡ Quick Start
-
-### Install dependencies (first time)
-
-In the R console:
-```r
-# Install dependent packages
-install.packages(c("ggplot2", "patchwork"))
-```
-
-### Basic usage in 5 minutes
-
-```r
 # 1. Load the package
 library(JMAK)
 
@@ -177,6 +123,53 @@ predictions <- jmnak_predict(
 print(predictions$tstar)
 ```
 
+### **Method 2: Installation from with the JMAK_1.1.tar.gz**
+
+**In the R console, from the project folder:**
+
+1. Open the Folder JMAK with **RStudio**
+2. Go to menu **Tools** → **Install Packages...**
+3. In **Install from**, select: **Package Archive File (.tar.gz, .zip)**
+4. Click **Browse** and navigate to the `JMAK` folder you just downloaded
+5. Select the file `JMAK_1.1.tar.gz`
+6. Click **Install**
+
+Wait a few seconds, and you're done! ✅
+
+```r
+
+# 1. Load the package
+library(JMAK)
+
+# 2. Load example data
+data(polymere_cristallisation)
+head(polymere_cristallisation)
+
+# 3. Fit the JMAK model
+fit <- jmnak_fit_auto(
+  t = polymere_cristallisation$t,
+  Y = polymere_cristallisation$Y,
+  verbose = TRUE
+)
+
+# 4. Get the parameters
+K <- fit$parameters$K
+n <- fit$parameters$n
+cat("K =", K, ", n =", n, "\n")
+
+# 5. Make predictions
+predictions <- jmnak_predict(
+  t = seq(0.5, 30, 0.5),
+  K = K,
+  n = n,
+  Ystar = c(0.5, 0.9)
+)
+
+# Display characteristic times
+print(predictions$tstar)
+
+```
+
 **Expected result:**
 ```
 ========================================================
@@ -195,84 +188,6 @@ FIT QUALITY METRICS:
 
 ---
 
-## 📖 Complete Guide
-
-### Detailed step-by-step installation
-
-#### **For beginners on Windows**
-
-1. **Install Git** (if you don't have it)
-   - Go to https://git-scm.com/download/win
-   - Download the installer (green, on the right)
-   - Double-click and accept the default settings
-   - Restart your computer
-
-2. **Download the package code**
-   - Open **PowerShell** (Win + X, then select PowerShell)
-   - Type:
-   ```powershell
-   cd C:\Users\YourName\Documents
-   git clone https://github.com/prunelleeba/JMAK-.git
-   cd JMAK
-   dir  # Verify that you see the file JMAK_1.1.tar.gz
-   ```
-
-3. **Install the package in R**
-   - Open **RStudio**
-   - Copy-paste in the console:
-   ```r
-   install.packages("C:/Users/YourName/Documents/JMAK/JMAK_1.1.tar.gz", 
-                    repos = NULL, 
-                    type = "source")
-   ```
-   - Press **Enter** and wait
-   - If no error, it's installed ✅
-
-4. **Verify the installation**
-   ```r
-   library(JMAK)
-   data(polymere_cristallisation)
-   fit <- jmnak_fit_auto(polymere_cristallisation$t, 
-                         polymere_cristallisation$Y, 
-                         verbose = FALSE)
-   print(fit)
-   ```
-
-#### **For beginners on Ubuntu/Linux**
-
-1. **Install Git** (if you don't have it)
-   ```bash
-   sudo apt-get update
-   sudo apt-get install git
-   ```
-
-2. **Download the package code**
-   ```bash
-   cd ~/Documents
-   git clone https://github.com/prunelleeba/JMAK-.git
-   cd JMAK
-   ls  # Verify that you see the file JMAK_1.1.tar.gz
-   ```
-
-3. **Install the package in R**
-   - Open **RStudio** or run `R` in the terminal
-   ```r
-   install.packages("~/Documents/JMAK/JMAK_1.1.tar.gz", 
-                    repos = NULL, 
-                    type = "source")
-   ```
-
-4. **Verify the installation**
-   ```r
-   library(JMAK)
-   data(polymere_cristallisation)
-   fit <- jmnak_fit_auto(polymere_cristallisation$t, 
-                         polymere_cristallisation$Y, 
-                         verbose = FALSE)
-   print(fit)
-   ```
-
----
 
 ## 🔧 Main Functions
 
@@ -623,161 +538,7 @@ cat("  - characteristic_times.csv\n")
 
 ---
 
-## ❓ FAQ
-
-### Q1: I just installed R and don't know anything. Where do I start?
-
-**A:**
-1. Install **Git** from https://git-scm.com
-2. Install **RStudio** from https://posit.co/download/rstudio-desktop/
-3. Follow the steps in the [Detailed Installation for Beginners](#for-beginners-on-windows) section
-4. Run the code from the [Quick Start](#⚡-quick-start) section
-
----
-
-### Q2: I can't install the package. What should I do?
-
-**Try these solutions in order:**
-
-1. **Check dependencies**:
-   ```r
-   install.packages(c("ggplot2", "patchwork"))
-   ```
-
-2. **Reinstall from scratch**:
-   ```r
-   # Remove old version
-   remove.packages("JMAK")
-   
-   # Reinstall
-   install.packages("C:/path/to/JMAK/JMAK_1.1.tar.gz", 
-                    repos = NULL, 
-                    type = "source")
-   ```
-
-3. **If you're on Windows and it fails**:
-   - Make sure **R Tools** is installed: https://cran.r-project.org/bin/windows/Rtools/
-   - Close all R and RStudio windows
-   - Try again
-
-4. **Contact me** with the complete error message
-
----
-
-### Q3: My data is in percentages. Do I need to convert it?
-
-**No!** The `jmnak_import_validate()` function does it automatically.
-
-```r
-# This works:
-Y <- c(5, 10, 25, 50, 75, 90)  # Percentages
-fit <- jmnak_fit_auto(t, Y)  # Auto conversion
-```
-
----
-
-### Q4: How do I interpret R²?
-
-**R² (coefficient of determination):**
-- R² = 1.0: perfect fit
-- R² > 0.95: excellent
-- R² > 0.90: very good
-- R² > 0.80: good
-- R² < 0.80: weak fit, check your data
-
-```r
-fit <- jmnak_fit_auto(t, Y, verbose = FALSE)
-cat("R² =", fit$fit_quality$r2_original, "\n")
-```
-
----
-
-### Q5: What does the exponent n tell me?
-
-The exponent **n** characterizes the **mechanism** of transformation:
-
-| Value of n | Mechanism |
-|---|---|
-| n ≈ 1 | One-dimensional growth |
-| n ≈ 2 | Two-dimensional growth |
-| n ≈ 3 | Three-dimensional growth |
-| n ≈ 4 | Nucleation and 3D growth |
-| n > 4 | Accelerated nucleation |
-
-```r
-fit <- jmnak_fit_auto(t, Y, verbose = FALSE)
-cat("Exponent n =", fit$parameters$n, "\n")
-```
-
----
-
-### Q6: The plots don't display
-
-**Probable cause:** ggplot2 is not installed
-
-**Solution:**
-```r
-install.packages("ggplot2")
-library(JMAK)
-# Try again
-fit <- jmnak_fit_auto(t, Y, verbose = TRUE)
-```
-
-The package uses base R graphics as a fallback if ggplot2 is not available.
-
----
-
-### Q7: How do I know if my fit is good?
-
-**Look for these signs:**
-
-1. **R²** > 0.90 ✅
-2. **RMSE** low (close to experimental error) ✅
-3. **Residuals** scattered randomly around zero ✅
-4. **Cook's distance** few or no points above the threshold ✅
-5. **Shapiro-Wilk** p-value > 0.05 ✅ (normal residuals)
-
-```r
-fit <- jmnak_fit_auto(t, Y, verbose = TRUE)
-# All these indices are displayed in the summary
-```
-
----
-
-### Q8: I want to remove an experimental point that looks wrong
-
-```r
-library(JMAK)
-
-# Identify the outlier visually or by its Cook's distance
-# Then refit without that point
-
-t_clean <- t[-index_outlier]  # Remove element at index
-Y_clean <- Y[-index_outlier]
-
-# Refit
-fit <- jmnak_fit_auto(t_clean, Y_clean, verbose = TRUE)
-```
-
----
-
-### Q9: Can I use this package on Mac?
-
-**Yes!** The package works on macOS.
-
-First install Homebrew, then:
-```bash
-brew install git
-brew install r
-```
-
-Then follow the Linux instructions.
-
----
-
-### Q10: Where can I report bugs or request features?
-
-Create an **Issue** on GitHub: https://github.com/prunelleeba/JMAK-/issues
+**Contact me** with the complete error message
 
 ---
 
@@ -942,8 +703,7 @@ Now that you've installed JMAK:
 5. ✅ Generate your analysis reports
 
 ---
-
-## 🎓 Learn more about the JMAK Model
+# 🎓 Learn more about the JMAK Model
 
 ### Scientific References
 - Avrami, M. (1939). "Kinetics of phase change. I" Journal of Chemical Physics

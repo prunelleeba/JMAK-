@@ -6,7 +6,6 @@
 
 A modern and accessible R package to **model and analyze transformation kinetics** (crystallization, chemical reactions, polymerization, etc.) using the **JMAK/Avrami model**.
 
-
 ## 📌 About
 
 ### What is the JMAK Model?
@@ -174,6 +173,23 @@ FIT QUALITY METRICS:
 
 ---
 
+### 2️⃣ if you have open the projet folder in Rstudio and load package , you can Launch the Dashboard of App
+
+# Install required packages if not already installed
+```
+install.packages(c("shiny", "ggplot2", "gridExtra","shinyjs"))
+```
+# Run the app
+shiny::runApp("app.R")
+
+
+### 3️⃣ Access the Dashboard
+
+Once running, open your browser and go to:
+```
+http://localhost:3838
+```
+---
 
 ## 🔧 Main Functions
 

@@ -1,2 +1,10 @@
 .Rproj.user
-
+APP_ARCHITECTURE.md
+DOCUMENTATION_INDEX.md
+JUNGLE_GUIDE.md
+launch_dashboard.bat
+launch_dashboard.sh
+PRESENTATION_GUIDE.md
+QUICK_START.md
+run_dashboard.R
+VISUAL_ARCHITECTURE.md
